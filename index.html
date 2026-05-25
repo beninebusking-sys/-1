@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>덕꾸로그 - 시작하기</title>
+    <!-- 구글 폰트 적용 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&family=Pacifico&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --point-color: #ff8aae;
+            --pastel-pink: #fff0f3;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: var(--pastel-pink); /* 전체 배경을 연한 핑크로 */
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* 세로 중앙 정렬 */
+            align-items: center;    /* 가로 중앙 정렬 */
+            text-align: center;
+        }
+
+        /* 로고 영역 */
+        .logo {
+            font-family: 'Pacifico', cursive;
+            font-size: 50px;
+            color: var(--point-color);
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 0px white;
+        }
+
+        /* 안내 문구 영역 */
+        .intro-container {
+            margin-bottom: 50px;
+        }
+
+        .main-msg {
+            font-size: 22px;
+            font-weight: 700;
+            color: #444;
+            margin-bottom: 8px;
+        }
+
+        .sub-msg {
+            font-size: 15px;
+            color: #888;
+            line-height: 1.5;
+        }
+
+        /* 매력적인 시작 버튼 */
+        .start-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 280px;
+            height: 70px;
+            background: white;
+            color: var(--point-color);
+            text-decoration: none;
+            border-radius: 50px;
+            font-size: 19px;
+            font-weight: bold;
+            box-shadow: 0 10px 25px rgba(255, 138, 174, 0.2);
+            transition: all 0.3s ease;
+            border: 2px solid var(--point-color);
+        }
+
+        .start-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 5px 10px rgba(255, 138, 174, 0.2);
+        }
+
+        .start-btn span {
+            margin-right: 10px;
+            font-size: 24px;
+        }
+
+        /* 하단 장식 (선택) */
+        .footer-deco {
+            position: absolute;
+            bottom: 30px;
+            font-size: 12px;
+            color: #bbb;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 중앙 로고 및 문구 -->
+    <div class="intro-container">
+        <div class="logo">Duck-Log</div>
+        <h1 class="main-msg">포카를 예쁘게 꾸며보세요!</h1>
+        <p class="sub-msg">나만의 최애 사진을 불러와서<br>스티커로 세상에 하나뿐인 슬리브를 만들어요.</p>
+    </div>
+
+    <!-- 시작 버튼 -->
+    <a href="sleeve.html" class="start-btn">
+        <span>✨</span> 지금 꾸미기 시작
+    </a>
+
+    <div class="footer-deco">
+        © 2024 Duck-Log. All rights reserved.
+    </div>
+
+</body>
+</html>

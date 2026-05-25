@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>덕꾸로그 - 랜덤 좌표 시스템</title>
+    
+    <!-- 라이브러리 -->
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&family=Pacifico&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { --point-color: #ff8aae; --bg-color: #fce4ec; }
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: var(--bg-color); margin: 0; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; touch-action: none; }
+
+        /* 상단 바 */
+        .top-nav { width: 100%; padding: 15px 20px; background: white; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 100; box-sizing: border-box;}
+        .save-btn { background: var(--point-color); color: white; border: none; padding: 8px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+
+        /* 편집 영역 */
+        .editor-container { margin: 15px 0; position: relative; }
+        #photo-card-sleeve {
+            width: 310px; height: 479px; 
+            background-color: white; border-radius: 15px; overflow: hidden; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        /* 레이어 설정 */
+        #bg-image { width: 100%; height: 100%; object-fit: cover; position: absolute; z-index: 1; }
+        #frame-layer { position: absolute; top:0; left:0; width:100%; height:100%; z-index: 5; pointer-events: none; box-sizing: border-box; }
+        .sticker { position: absolute; cursor: move; width: 60px; height: 60px; z-index: 10; padding: 5px; } 
+
+        /* 컨트롤러 */
+        .controls { width: 100%; max-width: 400px; background: white; padding: 15px 15px 30px; border-radius: 25px 25px 0 0; position: fixed; bottom: 0; box-shadow: 0 -5px 15px rgba(0,0,0,0.05); box-sizing: border-box; }
+        .control-label { font-size: 11px; color: #aaa; margin-bottom: 5px; font-weight: bold; display: block; }
+        .tool-row { display: flex; align-items: center; gap: 10px; overflow-x: auto; margin-bottom: 12px; }
+        
+        .btn-circle { width: 50px; height: 50px; border-radius: 12px; border: 1px solid #eee; background: #f9f9f9; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+        
+        /* 크롭 모달 */
+        #crop-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; flex-direction: column; z-index: 2000; }
+        .crop-container { flex: 1; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        .crop-footer { height: 70px; display: flex; justify-content: space-around; align-items: center; background: #000; }
+    </style>
+</head>
+<body>
+
+    <div class="top-nav">
+        <a href="index.html" style="text-decoration:none; color:#ccc; font-weight:bold;">〈 BACK</a>
+        <div style="font-family: 'Pacifico'; color: var(--point-color); font-size: 18px;">Duck-Log Custom</div>
+        <button class="save-btn" onclick="startSaving()">저장</button>
+    </div>
+
+    <div class="editor-container">
+        <div id="photo-card-sleeve">
+            <div id="default-text" style="position:absolute; top:50%; width:100%; text-align:center; color:#ccc; z-index:0;">사진을 먼저 등록하세요</div>
+            <img id="bg-image">
+            <div id="frame-layer"></div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <span class="control-label">1. 사진 & 색상</span>
+        <div class="tool-row">
+            <label class="btn-circle" style="width: auto; padding: 0 15px; font-size: 12px; font-weight: bold;">
+                📸 사진 선택<input type="file" accept="image/*" style="display: none;" onchange="initCrop(this)">
+            </label>
+            <input type="color" id="part-color" value="#ff8aae" style="width:40px; height:40px; border:none; background:none; cursor:pointer;">
+            <div class="btn-circle" onclick="addPart('heart')"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="#ff8aae" d="M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.53C2,5.42 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.09C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.42 22,8.53C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z"/></svg></div>
+            <div class="btn-circle" onclick="addPart('star')"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="#ff8aae" d="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.63L2,9.24L7.45,13.97L5.82,21L12,17.27Z"/></svg></div>
+        </div>
+
+        <span class="control-label">2. 프레임 (한 개만 선택 가능)</span>
+        <div class="tool-row">
+            <div class="btn-circle" onclick="applyFrame('none')" style="font-size:10px;">None</div>
+            <div class="btn-circle" onclick="applyFrame('classic')"><div style="width:25px; height:35px; border:3px solid #ffc1d7; border-radius:3px;"></div></div>
+            <div class="btn-circle" onclick="applyFrame('dots')"><div style="width:25px; height:35px; border:3px dotted #b2ebf2; border-radius:3px;"></div></div>
+            <div class="btn-circle" onclick="applyFrame('bold')"><div style="width:25px; height:35px; background: repeating-linear-gradient(45deg, #f8bbd0, #f8bbd0 3px, #ffffff 3px, #ffffff 6px); opacity:0.6;"></div></div>
+        </div>
+    </div>
+
+    <!-- 크롭 모달 -->
+    <div id="crop-modal">
+        <div class="crop-container"><img id="crop-image"></div>
+        <div class="crop-footer">
+            <button onclick="closeCrop()" style="background:#444; color:white; border:none; padding:10px 25px; border-radius:20px;">취소</button>
+            <button onclick="applyCrop()" style="background:var(--point-color); color:white; border:none; padding:10px 25px; border-radius:20px;">자르기 완료</button>
+        </div>
+    </div>
+
+    <script>
+        let selectedElement = null;
+        let cropper = null;
+
+        // --- 사진 크롭 ---
+        function initCrop(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('crop-image').src = e.target.result;
+                    document.getElementById('crop-modal').style.display = 'flex';
+                    if(cropper) cropper.destroy();
+                    cropper = new Cropper(document.getElementById('crop-image'), {
+                        aspectRatio: 5.5 / 8.5, viewMode: 1, autoCropArea: 1
+                    });
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+        function applyCrop() {
+            const canvas = cropper.getCroppedCanvas({ width: 600, height: 927 });
+            document.getElementById('bg-image').src = canvas.toDataURL();
+            document.getElementById('default-text').style.display = 'none';
+            closeCrop();
+        }
+        function closeCrop() { document.getElementById('crop-modal').style.display = 'none'; }
+
+        // --- 프레임 적용 ---
+        function applyFrame(type) {
+            const layer = document.getElementById('frame-layer');
+            layer.innerHTML = ""; layer.style.border = "none"; layer.style.background = "none"; layer.style.outline = "none";
+            if(type === 'classic') layer.style.border = "15px solid #ffc1d7";
+            else if(type === 'dots') { layer.style.border = "12px dashed #b2ebf2"; layer.style.outline = "5px solid white"; layer.style.outlineOffset = "-10px"; }
+            else if(type === 'bold') { layer.style.border = "20px solid rgba(255, 182, 193, 0.4)"; layer.style.backgroundColor = "rgba(255, 255, 255, 0.1)"; }
+        }
+
+        // --- [핵심 수정] 스티커 랜덤 좌표 추가 ---
+        function addPart(type) {
+            const sleeve = document.getElementById('photo-card-sleeve');
+            const newPart = document.createElement('div');
+            newPart.className = 'sticker';
+            
+            // 랜덤 좌표 로직
+            // 슬리브 너비(310), 높이(479) 기준 중앙 영역 근처에서 랜덤하게 생성
+            const rangeX = 150; // 가로 이동 범위
+            const rangeY = 200; // 세로 이동 범위
+            const startX = 50;  // 시작 최소 X
+            const startY = 100; // 시작 최소 Y
+
+            const randomX = Math.floor(Math.random() * rangeX) + startX;
+            const randomY = Math.floor(Math.random() * rangeY) + startY;
+            
+            newPart.style.left = randomX + 'px';
+            newPart.style.top = randomY + 'px';
+            
+            const color = document.getElementById('part-color').value;
+            let pathD = type === 'heart' ? "M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.53C2,5.42 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.09C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.42 22,8.53C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z" : "M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.63L2,9.24L7.45,13.97L5.82,21L12,17.27Z";
+            
+            newPart.innerHTML = `<svg viewBox="0 0 24 24"><path fill="${color}" d="${pathD}"/></svg>`;
+            sleeve.appendChild(newPart);
+            makeDraggable(newPart);
+        }
+
+        // --- 드래그앤드롭 ---
+        function makeDraggable(el) {
+            let p1=0, p2=0, p3=0, p4=0;
+            const start = (e) => {
+                if(selectedElement) selectedElement.classList.remove('selected');
+                selectedElement = el; el.classList.add('selected');
+                let x = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+                let y = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+                p3 = x; p4 = y;
+                document.onmouseup = end; document.ontouchend = end;
+                document.onmousemove = move; document.ontouchmove = (e) => { e.preventDefault(); move(e); };
+            };
+            const move = (e) => {
+                let x = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+                let y = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+                p1 = p3 - x; p2 = p4 - y; p3 = x; p4 = y;
+                el.style.top = (el.offsetTop - p2) + "px"; el.style.left = (el.offsetLeft - p1) + "px";
+            };
+            const end = () => { document.onmouseup = null; document.onmousemove = null; document.ontouchend = null; document.ontouchmove = null; };
+            el.onmousedown = start; el.ontouchstart = start;
+        }
+
+        document.getElementById('part-color').oninput = (e) => {
+            if(selectedElement) selectedElement.querySelector('path').setAttribute('fill', e.target.value);
+        };
+
+        async function startSaving() {
+            if(selectedElement) selectedElement.classList.remove('selected');
+            const canvas = await html2canvas(document.getElementById('photo-card-sleeve'), { scale: 3, useCORS: true });
+            const link = document.createElement('a'); link.href = canvas.toDataURL();
+            link.download = `ducklog_${Date.now()}.png`; link.click();
+            alert('포토카드가 저장되었습니다!');
+        }
+    </script>
+</body>
+</html>
